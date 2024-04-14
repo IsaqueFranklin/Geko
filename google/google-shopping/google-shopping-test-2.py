@@ -37,5 +37,58 @@ def get_original_images():
 
     return image_urls
 
+def download_original_images(image_urls):
+    for index, image_url in enumerate(image_urls, start=1):
+        image = requests.get(image_url, headers=headers, timetout=30, stream=True)
+
+        if image.status_code == 200:
+            print(f"Downloading {index} image...")
+            with open(f"images/image_{index}.jpeg", "wb") as file:
+                file.write(image.content)
+
 def get_suggested_search_data():
     google_shopping_data = []
+
+    for result, thumbnail in zip(selector.css(".Qlx7of .i0X6df"), get_original_images()):
+        title = result.css(".tAxDx::text").get()        
+        product_link = "https://www.google.com" + result.css(".Lq5OHe::attr(href)").get()   
+        product_rating = result.css(".NzUzee .Rsc7Yb::text").get()      
+        product_reviews = result.css(".NzUzee > div::text").get()       
+        price = result.css(".a8Pemb::text").get()       
+        store = result.css(".aULzUe::text").get()       
+        store_link = "https://www.google.com" + result.css(".eaGTj div a::attr(href)").get()        
+        delivery = result.css(".vEjMR::text").get()
+
+        store_rating_value = result.css(".zLPF4b .XEeQ2 .QIrs8::text").get()
+        # https://regex101.com/r/kAr8I5/1
+        store_rating = re.search(r"^\S+", store_rating_value).group() if store_rating_value else store_rating_value
+
+        store_reviews_value = result.css(".zLPF4b .XEeQ2 .ugFiYb::text").get()
+        # https://regex101.com/r/axCQAX/1
+        store_reviews = re.search(r"^\(?(\S+)", store_reviews_value).group() if store_reviews_value else store_reviews_value
+
+        store_reviews_link_value = result.css(".zLPF4b .XEeQ2 .QhE5Fb::attr(href)").get()
+        store_reviews_link = "https://www.google.com" + store_reviews_link_value if store_reviews_link_value else store_reviews_link_value
+
+        compare_prices_link_value = result.css(".Ldx8hd .iXEZD::attr(href)").get()      
+        compare_prices_link = "https://www.google.com" + compare_prices_link_value if compare_prices_link_value else compare_prices_link_value
+
+        google_shopping_data.append({
+            "title": title,
+            "product_link": product_link,
+            "product_rating": product_rating,
+            "product_reviews": product_reviews,
+            "price": price,
+            "store": store,
+            "thumbnail": thumbnail,
+            "store_link": store_link,
+            "delivery": delivery,
+            "store_rating": store_rating,
+            "store_reviews": store_reviews,
+            "store_reviews_link": store_reviews_link,
+            "compare_prices_link": compare_prices_link,
+        })
+
+    print(json.dumps(google_shopping_data, indent=2, ensure_ascii=False))
+
+get_suggested_search_data()
